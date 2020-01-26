@@ -16,8 +16,7 @@ Copyright (c) 2020 Mario Badr, Christine Murad, Diane Horton, Misha Schwartz,
 Sophia Huynh and Jaisie Sin
 """
 from datetime import datetime
-from typing import Dict, List, TextIO, uple
-
+from typing import Dict, List, TextIO, Tuple
 
 # The additional pay per hour instructors receive for each certificate they
 # hold.
@@ -119,7 +118,7 @@ class Instructor:
         """
 
         if certificate not in self._certificates:
-            self.certificates.append(certificate)
+            self._certificates.append(certificate)
             return True
 
         return False
@@ -156,7 +155,6 @@ class Instructor:
                 return False
 
         return True
-
 
 
 class Gym:
@@ -240,7 +238,6 @@ class Gym:
 
         return False
 
-
     def add_workout_class(self, workout_class: WorkoutClass) -> bool:
         """Add a <workout_class> to this Gym iff the <workout_class> has not
         already been added this Gym.
@@ -261,7 +258,6 @@ class Gym:
 
         return False
 
-
     def add_room(self, name: str, capacity: int) -> bool:
         """Add a room with a <name> and <capacity> to this Gym iff the room
         has not already been added to this Gym.
@@ -280,14 +276,13 @@ class Gym:
 
         return False
 
-
     def schedule_workout_class(self, time_point: datetime, room_name: str,
                                workout_name: str, instr_id: int) -> bool:
 
         """Add an offering to this Gym at a <time_point> iff:
             - the room with <room_name> is available,
             - the instructor with <instr_id> is qualified to teach the workout
-              class with <w orkout_name>, and
+              class with <workout_name>, and
             - the instructor is not teaching another workout class during the
               same <time_point>.
         A room is available iff it does not already have another workout class
@@ -318,8 +313,67 @@ class Gym:
         boot_camp.get_name(), diane.get_id())
         True
         """
+
         # TODO: implement this method!
 
+        # instructor is in list
+        if self._room_available(time_point, room_name) and \
+                self._instructors[instr_id].can_teach(
+                        self._workouts[workout_name]) \
+                and self._instructor_available(time_point, instr_id):
+
+            # Dict[str (room_name), Tuple[Instructor, WorkoutClass, List[str]
+            # (clients)]]]
+            self._schedule[time_point] = \
+                {room_name: (self._instructors[instr_id],
+                             self._workouts[workout_name], [])}
+
+            return True
+
+        return False
+
+    def _room_available(self, time: datetime, name_room: str) -> bool:
+        """
+        Return True if room with <name_room> is available at <time>.
+        Return False otherwise.
+
+        :param name_room:
+        :return:
+        """
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+        if time not in self._schedule:
+            return True
+
+        else:
+            list_names = self._schedule[time].keys()  # List[str] of room names
+            if name_room in list_names:
+                return False
+
+        return True
+
+    def _instructor_available(self, time: datetime, ins_id: int) -> bool:
+        """
+        Return True if instructor with <ins_id> is available at <time>.
+        Return False otherwise.
+
+        :param ins_id:
+        :return:
+        """
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+
+        if time not in self._schedule:
+            return True
+
+        else:
+            list_tups = self._schedule[time].values()  # List[Tuple]
+
+            for t in list_tups:
+                if ins_id == t[0].getid():  # id of instructor
+                    return False
+
+        return True
 
     def register(self, time_point: datetime, client: str, workout_name: str) \
             -> bool:
@@ -358,7 +412,79 @@ class Gym:
         False
         """
         # TODO: implement this method!
-        pass
+
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+
+        not_full_rooms = []
+
+        for room in self._list_of_rooms(time_point, workout_name):  # each room
+            if self._room_not_full(time_point, room):
+                not_full_rooms.append(room)
+
+        if self._client_not_registered(time_point, client) and \
+                (len(not_full_rooms) != 0):
+            # maybe make choosing room random
+            self._schedule[time_point][not_full_rooms[0]][2].append(client)
+            return True
+
+        return False
+
+    def _list_of_rooms(self, time: datetime, name_workout: str) -> List[str]:
+        """
+        Return a list of the names of rooms that Workout with name
+        <name_workout> is offered in at time <time>.
+
+        Precondition: the WorkoutClass with <workout_name> is being offered in
+            some room at <time_point>.
+
+        :param name_workout:
+        :return:
+        """
+        lst_rooms = []
+
+        dictionary = self._schedule[time]  # nested dictionary
+        for room in dictionary:  # iterates through each room
+            if dictionary[room][1].get_name() == name_workout:  # Workout name
+                lst_rooms.append(room)
+
+    def _client_not_registered(self, time: datetime, client_name: str) -> bool:
+        """
+        Return True if client with <client_name> is not registered
+        in any workout classes at time <time>. Return False otherwise.
+        :param client_name:
+        :return:
+        """
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+
+        if time not in self._schedule:
+            return True
+        else:
+            list_tups = self._schedule[time].values()  # List[Tuples]
+            for t in list_tups:
+                if client_name in t[2]:  # list of clients
+                    return False
+
+        return True
+
+    def _room_not_full(self, time: datetime, r_name) -> bool:
+        """
+        Return True if room with <r_name> is not full (under capacity) at time <time>.
+        :param time:
+        :param r_name:
+        :return:
+        """
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+        if time not in self._schedule:
+            return True
+
+        else:
+            list_clients = self._schedule[time][r_name][
+                2]  # List[str] of clients
+            capacity = self._rooms[r_name]
+            return len(list_clients) < capacity
 
     def offerings_at(self, time_point: datetime) -> List[Tuple[str, str, str]]:
         """Return all the offerings that start at <time_point>.
@@ -388,7 +514,19 @@ class Gym:
         True
         """
         # TODO: implement this method!
-        pass
+
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+
+        lst_tuple = []
+        dictionary = self._schedule[time_point]
+        for room in dictionary:  # each room in dictionary
+            instructor_name = dictionary[room][0].name
+            workout_name = dictionary[room][1].get_name()
+            lst_tuple.append((room, instructor_name, workout_name))
+
+        return lst_tuple
+
 
     def instructor_hours(self, time1: datetime, time2: datetime) -> \
             Dict[int, int]:
@@ -425,7 +563,37 @@ class Gym:
         True
         """
         # TODO: implement this method!
-        pass
+
+        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
+        # WorkoutClass, List[str] (clients)]]]
+
+        hours_dict = {}
+
+        for t in self._schedule:
+            if time1 <= t <= time2:
+                instructor_ids = self._list_of_instructor_ids(t)
+
+                for ins_id in instructor_ids:
+                    if ins_id not in  hours_dict:
+                        hours_dict[ins_id] = 0
+                    hours_dict[ins_id] = hours_dict[ins_id] + 1
+
+        return hours_dict
+
+    def _list_of_instructor_ids(self, time: datetime) -> List[int]:
+        """
+        Return a list of the ids of instructors who are teaching at time <time>.
+
+        :return:
+        """
+        list_of_ids = []
+        dictionary = self._schedule[time]
+        for room in dictionary:  # each room in dictionary
+            instructor_id = dictionary[room][0].get_id()
+            list_of_ids.append(instructor_id)
+
+        return list_of_ids
+
 
     def payroll(self, time1: datetime, time2: datetime, base_rate: float) \
             -> List[Tuple[int, str, int, float]]:
@@ -472,7 +640,23 @@ class Gym:
         [(1, 'Diane', 1, 26.5), (2, 'David', 0, 0.0)]
         """
         # TODO: implement this method!
-        pass
+
+        lst_tup = []
+        # assuming that instructor's id is in _instructor
+        dict_id_hours = self.instructor_hours(time1, time2)
+
+        for id_dict in dict_id_hours:
+            id_tup = id_dict
+            hours_tup = dict_id_hours[id_dict]
+            name_tup = self._instructors[id_tup].name
+            certificate_num = self._instructors[id_tup].get_num_certificates()
+            pay_tup = hours_tup * base_rate + certificate_num * BONUS_RATE
+
+            lst_tup.append((id_tup, name_tup, hours_tup, pay_tup))
+
+        lst_tup.sort(key=lambda x: x[0])
+
+        return lst_tup
 
 
 def parse_instructor(file: TextIO, header: str) -> Instructor:
@@ -629,6 +813,7 @@ def load_data(file_name: str, gym_name: str) -> Gym:
 
 if __name__ == '__main__':
     import python_ta
+
     python_ta.check_all(config={
         'allowed-io': ['load_data'],
         'allowed-import-modules': ['doctest', 'python_ta', 'typing',
@@ -637,6 +822,7 @@ if __name__ == '__main__':
     })
 
     import doctest
+
     doctest.testmod()
 
     # Example: reading data about a Gym from a file.
