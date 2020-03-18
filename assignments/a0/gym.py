@@ -116,7 +116,6 @@ class Instructor:
         >>> instructor.add_certificate('Strength Training')
         False
         """
-
         if certificate not in self._certificates:
             self._certificates.append(certificate)
             return True
@@ -147,11 +146,10 @@ class Instructor:
         >>> matylda.can_teach(kickboxing)
         True
         """
-
         req = workout_class.get_required_certificates()
 
-        for c in self._certificates:
-            if c not in req:
+        for c in req:
+            if c not in self._certificates:
                 return False
 
         return True
@@ -186,11 +184,11 @@ class Gym:
     === Representation Invariants ===
     - Each key in _schedule is for a time that is on the hour.
     - No instructor is recorded as teaching two workout classes at the same
-      time.
+      time. (good)
     - No client is recorded as registered for two workout classes at the same
       time.
     - If an instructor is recorded as teaching a workout class, they have the
-      necessary qualifications.
+      necessary qualifications. (good)
     - If there are no offerings scheduled at date and time <d> in room <r> then
       <r> does not occur as a key in _schedule[d]
     - If there are no offerings at date and time <d> in any room at all, then
@@ -227,9 +225,16 @@ class Gym:
         >>> diane = Instructor(1, 'Diane')
         >>> ac.add_instructor(diane)
         True
+        >>> diane = Instructor(1, 'Diane')
+        >>> ac.add_instructor(diane)
+        False
+        >>> ella = Instructor(1, 'ella')
+        >>> ac.add_instructor(ella)
+        False
+        >>> ella2 = Instructor(2, 'Diane')
+        >>> ac.add_instructor(ella2)
+        True
         """
-        # TODO: implement this method!
-        # instructor ID is unique
         id_i = instructor.get_id()
 
         if id_i not in self._instructors:
@@ -248,8 +253,9 @@ class Gym:
         >>> kickboxing = WorkoutClass('Kickboxing', ['Strength Training'])
         >>> ac.add_workout_class(kickboxing)
         True
+        >>> ac.add_workout_class(kickboxing)
+        False
         """
-        # TODO: implement this method!
         class_name = workout_class.get_name()
 
         if class_name not in self._workouts:
@@ -267,9 +273,9 @@ class Gym:
         >>> ac = Gym('Athletic Centre')
         >>> ac.add_room('Dance Studio', 50)
         True
+        >>> ac.add_room('Dance Studio', 50)
+        False
         """
-        # TODO: implement this method!
-
         if name not in self._rooms:
             self._rooms[name] = capacity
             return True
@@ -278,7 +284,6 @@ class Gym:
 
     def schedule_workout_class(self, time_point: datetime, room_name: str,
                                workout_name: str, instr_id: int) -> bool:
-
         """Add an offering to this Gym at a <time_point> iff:
             - the room with <room_name> is available,
             - the instructor with <instr_id> is qualified to teach the workout
@@ -314,64 +319,100 @@ class Gym:
         True
         """
 
-        # TODO: implement this method!
+        not_in = False
+        if time_point not in self._schedule:
+            self._schedule[time_point] = {}
+            not_in = True
 
-        # instructor is in list
-        if self._room_available(time_point, room_name) and \
-                self._instructors[instr_id].can_teach(
-                        self._workouts[workout_name]) \
-                and self._instructor_available(time_point, instr_id):
+        room_avail = self._room_available(time_point, room_name)
+        instructor_qual = self._instructors[instr_id].can_teach(
+            self._workouts[workout_name])
+        instructor_avail = self._instructor_available(time_point, instr_id)
 
-            # Dict[str (room_name), Tuple[Instructor, WorkoutClass, List[str]
-            # (clients)]]]
-            self._schedule[time_point] = \
+        if room_avail and instructor_qual and instructor_avail:
+            # self._schedule[time_point] is at least {}
+            self._schedule[time_point].update(
                 {room_name: (self._instructors[instr_id],
-                             self._workouts[workout_name], [])}
+                             self._workouts[workout_name], [])})
 
             return True
+
+        if not_in:
+            del self._schedule[time_point]
 
         return False
 
     def _room_available(self, time: datetime, name_room: str) -> bool:
         """
-        Return True if room with <name_room> is available at <time>.
-        Return False otherwise.
+        Return True iff the room with <name_room> is available at time <time>.
 
-        :param name_room:
-        :return:
+        A room is available iff it does not already have another workout class
+        scheduled at that date and time.
+
+        Preconditions:
+        1. The room has already been added to this Gym.
+        2. <time> is in _schedule
+
+        >>> ac = Gym('Athletic Centre')
+        >>> diane = Instructor(1, 'Diane')
+        >>> ac.add_instructor(diane)
+        True
+        >>> diane.add_certificate('Cardio 1')
+        True
+        >>> ac.add_room('Dance Studio', 50)
+        True
+        >>> boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+        >>> ac.add_workout_class(boot_camp)
+        True
+        >>> sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+        >>> ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',\
+        boot_camp.get_name(), diane.get_id())
+        True
+        >>> ac._room_available(sep_9_2019_12_00, "Dance Studio")
+        False
+
         """
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
-        if time not in self._schedule:
-            return True
-
-        else:
-            list_names = self._schedule[time].keys()  # List[str] of room names
-            if name_room in list_names:
-                return False
+        list_names = self._schedule[time].keys()  # List[str] of room names
+        if name_room in list_names:
+            return False
 
         return True
 
     def _instructor_available(self, time: datetime, ins_id: int) -> bool:
         """
-        Return True if instructor with <ins_id> is available at <time>.
-        Return False otherwise.
+        Return True iff Instructor with <ins_id> is available at time <time>.
 
-        :param ins_id:
-        :return:
+        Instructor is available if at time <time>
+        they are not teaching in any of the rooms.
+
+        Preconditions:
+        1. The Instructor has already been added to this Gym.
+        2. <time> is in _schedule.
+
+        >>> ac = Gym('Athletic Centre')
+        >>> diane = Instructor(1, 'Diane')
+        >>> ac.add_instructor(diane)
+        True
+        >>> diane.add_certificate('Cardio 1')
+        True
+        >>> ac.add_room('Dance Studio', 50)
+        True
+        >>> boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+        >>> ac.add_workout_class(boot_camp)
+        True
+        >>> sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+        >>> ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',\
+        boot_camp.get_name(), diane.get_id())
+        True
+        >>> ac._instructor_available(sep_9_2019_12_00, 1)
+        False
         """
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
 
-        if time not in self._schedule:
-            return True
+        list_tups = self._schedule[time].values()  # List[Tuple]
 
-        else:
-            list_tups = self._schedule[time].values()  # List[Tuple]
-
-            for t in list_tups:
-                if ins_id == t[0].getid():  # id of instructor
-                    return False
+        for t in list_tups:
+            if ins_id == t[0].get_id():  # id of instructor (it is unique)
+                return False
 
         return True
 
@@ -389,7 +430,7 @@ class Gym:
         Return True iff the client was added.
 
         Precondition: the WorkoutClass with <workout_name> is being offered in
-            some room at <time_point>.
+            some room at <time_point>. (<time_point> exists in self._schedule)
 
         >>> ac = Gym('Athletic Centre')
         >>> diane = Instructor(1, 'Diane')
@@ -411,80 +452,123 @@ class Gym:
         >>> ac.register(sep_9_2019_12_00, 'Philip', 'Boot Camp')
         False
         """
-        # TODO: implement this method!
-
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
 
         not_full_rooms = []
 
-        for room in self._list_of_rooms(time_point, workout_name):  # each room
+        for room in self._list_of_rooms(time_point, workout_name):
             if self._room_not_full(time_point, room):
                 not_full_rooms.append(room)
 
         if self._client_not_registered(time_point, client) and \
                 (len(not_full_rooms) != 0):
-            # maybe make choosing room random
-            self._schedule[time_point][not_full_rooms[0]][2].append(client)
+
+            self._schedule[time_point][not_full_rooms[0]][2].append(
+                client)
             return True
 
         return False
 
     def _list_of_rooms(self, time: datetime, name_workout: str) -> List[str]:
-        """
-        Return a list of the names of rooms that Workout with name
+        """Return a list of the names of rooms that Workout with name
         <name_workout> is offered in at time <time>.
 
         Precondition: the WorkoutClass with <workout_name> is being offered in
-            some room at <time_point>.
+        some room at <time_point>.
 
-        :param name_workout:
-        :return:
+        >>> ac = Gym('Athletic Centre')
+        >>> diane = Instructor(1, 'Diane')
+        >>> diane.add_certificate('Cardio 1')
+        True
+        >>> ac.add_instructor(diane)
+        True
+        >>> ac.add_room('Dance Studio', 50)
+        True
+        >>> boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+        >>> ac.add_workout_class(boot_camp)
+        True
+        >>> sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+        >>> ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',\
+        boot_camp.get_name(), diane.get_id())
+        True
+        >>> ac._list_of_rooms(sep_9_2019_12_00,boot_camp.get_name())
+        ['Dance Studio']
         """
         lst_rooms = []
 
-        dictionary = self._schedule[time]  # nested dictionary
+        dictionary = self._schedule[time]  # accesses nested dictionary
         for room in dictionary:  # iterates through each room
             if dictionary[room][1].get_name() == name_workout:  # Workout name
                 lst_rooms.append(room)
 
-    def _client_not_registered(self, time: datetime, client_name: str) -> bool:
-        """
-        Return True if client with <client_name> is not registered
-        in any workout classes at time <time>. Return False otherwise.
-        :param client_name:
-        :return:
-        """
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
+        return lst_rooms
 
-        if time not in self._schedule:
-            return True
-        else:
-            list_tups = self._schedule[time].values()  # List[Tuples]
-            for t in list_tups:
-                if client_name in t[2]:  # list of clients
-                    return False
+    def _client_not_registered(self, time: datetime, client_name: str) -> bool:
+        """Return True iff client with <client_name> is not registered
+        in any workout classes at time <time>.
+
+        Note:  Each client is represented by a unique string.
+        Precondition: <time> is in _schedule
+
+        >>> ac = Gym('Athletic Centre')
+        >>> diane = Instructor(1, 'Diane')
+        >>> diane.add_certificate('Cardio 1')
+        True
+        >>> ac.add_instructor(diane)
+        True
+        >>> ac.add_room('Dance Studio', 50)
+        True
+        >>> boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+        >>> ac.add_workout_class(boot_camp)
+        True
+        >>> sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+        >>> ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',\
+        boot_camp.get_name(), diane.get_id())
+        True
+        >>> ac._client_not_registered(sep_9_2019_12_00, "Philip")
+        True
+        >>> ac.register(sep_9_2019_12_00, 'Philip', 'Boot Camp')
+        True
+        >>> ac._client_not_registered(sep_9_2019_12_00, "Philip")
+        False
+        """
+        list_tups = self._schedule[time].values()
+        for t in list_tups:
+            if client_name in t[2]:  # t[2] is a list of client names
+                return False
 
         return True
 
-    def _room_not_full(self, time: datetime, r_name) -> bool:
-        """
-        Return True if room with <r_name> is not full (under capacity) at time <time>.
-        :param time:
-        :param r_name:
-        :return:
-        """
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
-        if time not in self._schedule:
-            return True
+    def _room_not_full(self, time: datetime, r_name: str) -> bool:
+        """Return True iff room with <r_name> is not full (under capacity) at
+        time <time>.
 
-        else:
-            list_clients = self._schedule[time][r_name][
-                2]  # List[str] of clients
-            capacity = self._rooms[r_name]
-            return len(list_clients) < capacity
+        Precondition: <time> is in _schedule
+
+        >>> ac = Gym('Athletic Centre')
+        >>> diane = Instructor(1, 'Diane')
+        >>> diane.add_certificate('Cardio 1')
+        True
+        >>> ac.add_instructor(diane)
+        True
+        >>> ac.add_room('Dance Studio', 1)
+        True
+        >>> boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+        >>> ac.add_workout_class(boot_camp)
+        True
+        >>> sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+        >>> ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',\
+        boot_camp.get_name(), diane.get_id())
+        True
+        >>> ac._room_not_full(sep_9_2019_12_00, 'Dance Studio')
+        True
+        >>> ac.register(sep_9_2019_12_00, 'Philip', 'Boot Camp')
+        True
+        >>> ac._room_not_full(sep_9_2019_12_00, 'Dance Studio')
+        False
+        """
+        list_clients = self._schedule[time][r_name][2]  # List[str] of clients
+        capacity = self._rooms[r_name]
+        return len(list_clients) < capacity
 
     def offerings_at(self, time_point: datetime) -> List[Tuple[str, str, str]]:
         """Return all the offerings that start at <time_point>.
@@ -513,20 +597,20 @@ class Gym:
         >>> ('Diane', 'Boot Camp', 'Dance Studio') in ac.offerings_at(t1)
         True
         """
-        # TODO: implement this method!
 
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
+        if time_point not in self._schedule:
+            return []
 
-        lst_tuple = []
-        dictionary = self._schedule[time_point]
-        for room in dictionary:  # each room in dictionary
-            instructor_name = dictionary[room][0].name
-            workout_name = dictionary[room][1].get_name()
-            lst_tuple.append((room, instructor_name, workout_name))
+        else:  # time_point is in self._schedule
+            lst_tuple = []
+            dictionary = self._schedule[time_point]
 
-        return lst_tuple
+            for room in dictionary:  # each room in dictionary at <time_point>
+                instructor_name = dictionary[room][0].name
+                workout_name = dictionary[room][1].get_name()
+                lst_tuple.append((instructor_name, workout_name, room))
 
+            return lst_tuple
 
     def instructor_hours(self, time1: datetime, time2: datetime) -> \
             Dict[int, int]:
@@ -562,29 +646,45 @@ class Gym:
         >>> ac.instructor_hours(t1, t2) == {1: 1, 2: 0}
         True
         """
-        # TODO: implement this method!
-
-        # _schedule: Dict[datetime, Dict[str (room name), Tuple[Instructor,
-        # WorkoutClass, List[str] (clients)]]]
 
         hours_dict = {}
 
+        # not recording those who don't work
         for t in self._schedule:
             if time1 <= t <= time2:
                 instructor_ids = self._list_of_instructor_ids(t)
 
-                for ins_id in instructor_ids:
-                    if ins_id not in  hours_dict:
-                        hours_dict[ins_id] = 0
-                    hours_dict[ins_id] = hours_dict[ins_id] + 1
+                _update_dictionary(hours_dict, instructor_ids)
+
+        for i in self._instructors:
+            if i not in hours_dict:
+                hours_dict[i] = 0
 
         return hours_dict
 
     def _list_of_instructor_ids(self, time: datetime) -> List[int]:
-        """
-        Return a list of the ids of instructors who are teaching at time <time>.
+        """Return a list of the ids of instructors who are teaching at time
+        <time>.
 
-        :return:
+        Precondition: <time> is in _schedule
+
+        >>> ac = Gym('Athletic Centre')
+        >>> diane = Instructor(1, 'Diane')
+        >>> diane.add_certificate('Cardio 1')
+        True
+        >>> ac.add_instructor(diane)
+        True
+        >>> ac.add_room('Dance Studio', 1)
+        True
+        >>> boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+        >>> ac.add_workout_class(boot_camp)
+        True
+        >>> sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+        >>> ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',\
+        boot_camp.get_name(), diane.get_id())
+        True
+        >>> ac._list_of_instructor_ids(sep_9_2019_12_00)
+        [1]
         """
         list_of_ids = []
         dictionary = self._schedule[time]
@@ -593,7 +693,6 @@ class Gym:
             list_of_ids.append(instructor_id)
 
         return list_of_ids
-
 
     def payroll(self, time1: datetime, time2: datetime, base_rate: float) \
             -> List[Tuple[int, str, int, float]]:
@@ -639,10 +738,9 @@ class Gym:
         >>> ac.payroll(t1, t2, 25.0)
         [(1, 'Diane', 1, 26.5), (2, 'David', 0, 0.0)]
         """
-        # TODO: implement this method!
 
         lst_tup = []
-        # assuming that instructor's id is in _instructor
+        # instructor's id is in _instructor
         dict_id_hours = self.instructor_hours(time1, time2)
 
         for id_dict in dict_id_hours:
@@ -650,13 +748,32 @@ class Gym:
             hours_tup = dict_id_hours[id_dict]
             name_tup = self._instructors[id_tup].name
             certificate_num = self._instructors[id_tup].get_num_certificates()
-            pay_tup = hours_tup * base_rate + certificate_num * BONUS_RATE
+            pay_tup = hours_tup * (base_rate + certificate_num * BONUS_RATE)
 
             lst_tup.append((id_tup, name_tup, hours_tup, pay_tup))
 
-        lst_tup.sort(key=lambda x: x[0])
+        lst_tup.sort()
 
         return lst_tup
+
+
+def _update_dictionary(d: Dict[int, int], id_list: List[int]) -> None:
+    """Update dictionary <d> by first creating a new key for each number in
+    <id_list> (if the key doesn't exist already) and setting its value to 0.
+    Then, update <d> by adding 1 to each key's value.
+
+    >>> lst = [1,2]
+    >>> d = {}
+
+    >>> _update_dictionary(d, lst)
+    >>> d
+    {1: 1, 2: 1}
+
+    """
+    for ins_id in id_list:  # for each id in list
+        if ins_id not in d:
+            d[ins_id] = 0
+        d[ins_id] = d[ins_id] + 1
 
 
 def parse_instructor(file: TextIO, header: str) -> Instructor:
@@ -812,6 +929,17 @@ def load_data(file_name: str, gym_name: str) -> Gym:
 
 
 if __name__ == '__main__':
+    ac = Gym('Athletic Centre')
+    diane = Instructor(1, 'Diane')
+    ac.add_instructor(diane)
+    diane.add_certificate('Cardio 1')
+    ac.add_room('Dance Studio', 50)
+    boot_camp = WorkoutClass('Boot Camp', ['Cardio 1'])
+    ac.add_workout_class(boot_camp)
+    sep_9_2019_12_00 = datetime(2019, 9, 9, 12, 0)
+    ac.schedule_workout_class(sep_9_2019_12_00, 'Dance Studio',
+                                     boot_camp.get_name(), diane.get_id())
+
     import python_ta
 
     python_ta.check_all(config={
@@ -825,5 +953,4 @@ if __name__ == '__main__':
 
     doctest.testmod()
 
-    # Example: reading data about a Gym from a file.
-    # ac = load_data('athletic-centre.txt', 'Athletic Centre')
+    # ac = load_data('athletic-centre.txt', 'Athletic Centre'
