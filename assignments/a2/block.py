@@ -188,7 +188,14 @@ class Block:
         Block.
         """
         # TODO: Implement me
-        return  # FIXME
+        if self.children == []:  # no children
+            self.position = position
+        else:
+            lst_positions = self._children_positions()
+            i = 0
+            for child in self.children:  # each child is a Block
+                child._update_children_positions(lst_positions[i])
+                i += 1
 
     def smashable(self) -> bool:
         """Return True iff this block can be smashed.
@@ -204,37 +211,114 @@ class Block:
 
         If this Block's level is <max_depth>, do nothing. If this block has
         children, do nothing.
-        
+
         Return True iff the smash was performed.
         """
         # TODO: Implement me
-        return True  # FIXME
+        if self.level >= self.max_depth:
+            return False
+        if self.children != []:
+            return False
+
+        # __init__(self, position: Tuple[int, int], size: int,
+        #                  colour: Optional[Tuple[int, int, int]], level: int,
+        #                  max_depth: int) -> None:
+        lst_positions = self._children_positions()
+        child_size = self._child_size()
+        child_level = self.level + 1
+        child_md = self.max_depth
+        for i in range(4):
+            b = Block(lst_positions[i], child_size, random.choice(COLOUR_LIST),
+                      child_level, child_md)
+            self.children.append(b)
+
+        return True
 
     def swap(self, direction: int) -> bool:
         """Swap the child Blocks of this Block.
 
         If this Block has no children, do nothing. Otherwise, if <direction> is
         1, swap vertically. If <direction> is 0, swap horizontally.
-        
+
         Return True iff the swap was performed.
 
         Precondition: <direction> is either 0 or 1
         """
         # TODO: Implement me
-        return True  # FIXME
+        # question: is it just the children or all?
+        if self.children == []:
+            return False
+        zero = self.children[0]
+        one = self.children[1]
+        two = self.children[2]
+        three = self.children[3]
+
+        if direction == 1:  # vertical
+            self.children[0] = three
+            self.children[3] = zero
+            self.children[1] = two
+            self.children[2] = one
+
+        if direction == 0:
+            self.children[0] = one
+            self.children[1] = zero
+            self.children[2] = three
+            self.children[3] = two
+
+        return True
 
     def rotate(self, direction: int) -> bool:
         """Rotate this Block and all its descendants.
 
         If this Block has no children, do nothing. If <direction> is 1, rotate
         clockwise. If <direction> is 3, rotate counter-clockwise.
-        
+
         Return True iff the rotate was performed.
 
         Precondition: <direction> is either 1 or 3.
         """
         # TODO: Implement me
-        return True  # FIXME
+        if self.children == []:
+            return False
+
+        else:
+            if direction == 1:  # rotate clockwise
+                self._rotate_clockwise()
+            if direction == 3:  # rotate counter clockwise
+                self._rotate_counterclock()
+
+            for child in self.children:
+                child.rotate(direction)
+
+            return True
+
+    # helper
+    def _rotate_clockwise(self) -> None:
+        """ Rotate the children of this Block clockwise.
+        """
+        zero = self.children[0]
+        one = self.children[1]
+        two = self.children[2]
+        three = self.children[3]
+
+        self.children[0] = three
+        self.children[1] = two
+        self.children[2] = one
+        self.children[3] = zero
+
+    # helper
+    def _rotate_counterclock(self) -> None:
+        """ Rotate the children of this Block clockwise.
+        """
+        zero = self.children[0]
+        one = self.children[1]
+        two = self.children[2]
+        three = self.children[3]
+
+        self.children[0] = three
+        self.children[1] = zero
+        self.children[2] = one
+        self.children[3] = two
 
     def paint(self, colour: Tuple[int, int, int]) -> bool:
         """Change this Block's colour iff it is a leaf at a level of max_depth
@@ -243,7 +327,11 @@ class Block:
         Return True iff this Block's colour was changed.
         """
         # TODO: Implement me
-        return True  # FIXME
+        if self.level == self.max_depth and self.colour != colour:
+            self.colour = colour
+            return True
+
+        return False
 
     def combine(self) -> bool:
         """Turn this Block into a leaf based on the majority colour of its
@@ -259,7 +347,44 @@ class Block:
         Return True iff this Block was turned into a leaf node.
         """
         # TODO: Implement me
-        return True  # FIXME
+        if self.level != self.max_depth - 1 or self.children == []:
+            return False
+
+        maj_color = self._get_majority_color()
+        if maj_color is not None:
+            self.children = []
+            self.colour = maj_color
+            return True
+
+        return False
+
+        # helper
+
+    def _get_majority_color(self) -> Optional[Tuple[int, int, int]]:
+        """Return the majority color of this Block, if it exists. Return None
+        if it doesn't exist.
+
+        Precondition: self.level == self.max_depth - 1 and self.children != []:
+        """
+        lst_colors = []  # all child colors; but no duplicate color in lst
+        for child in self.children:
+            if child.colour not in lst_colors:
+                lst_colors.append(child.colour)
+
+        color_count = []  # len(color_count) == len(lst_colors)
+        for color in lst_colors:
+            count = 0
+            for child in self.children:
+                if child.colour == color:
+                    count += 1
+            color_count.append(count)
+
+        max_count = max(color_count)
+        if color_count.count(max_count) == 1:
+            index = color_count.index(max_count)
+            return lst_colors[index]
+
+        return None
 
     def create_copy(self) -> Block:
         """Return a new Block that is a deep copy of this Block.
@@ -267,11 +392,12 @@ class Block:
         Remember that a deep copy has new blocks (not aliases) at every level.
         """
         # TODO: Implement me
-        pass  # FIXME
+
 
 
 if __name__ == '__main__':
     import python_ta
+
     python_ta.check_all(config={
         'allowed-import-modules': [
             'doctest', 'python_ta', 'random', 'typing', '__future__', 'math',
