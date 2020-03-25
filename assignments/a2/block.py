@@ -215,9 +215,7 @@ class Block:
         Return True iff the smash was performed.
         """
         # TODO: Implement me
-        if self.level >= self.max_depth:
-            return False
-        if self.children != []:
+        if not self.smashable():
             return False
 
         # __init__(self, position: Tuple[int, int], size: int,
@@ -358,8 +356,7 @@ class Block:
 
         return False
 
-        # helper
-
+    # helper
     def _get_majority_color(self) -> Optional[Tuple[int, int, int]]:
         """Return the majority color of this Block, if it exists. Return None
         if it doesn't exist.
@@ -429,4 +426,6 @@ if __name__ == '__main__':
     # Now let's make a random board.
     b2 = generate_board(3, 750)
     print("\n=== random board ===")
+    print(b2)
+    b2.children[0].smash()
     print(b2)
