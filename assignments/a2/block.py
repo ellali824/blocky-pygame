@@ -392,6 +392,20 @@ class Block:
         Remember that a deep copy has new blocks (not aliases) at every level.
         """
         # TODO: Implement me
+        # def __init__(self, position: Tuple[int, int], size: int,
+        #                  colour: Optional[Tuple[int, int, int]], level: int,
+        #                  max_depth: int) -> None:
+
+        block = Block(self.position, self.size, self.colour, self.level,
+                      self.max_depth)
+
+        if self.children == []:
+            return block
+        else:
+            for child in self.children:
+                block.children.append(child.create_copy())
+
+            return block
 
 
 
