@@ -40,7 +40,22 @@ def generate_goals(num_goals: int) -> List[Goal]:
         - num_goals <= len(COLOUR_LIST)
     """
     # TODO: Implement Me
-    return [PerimeterGoal(COLOUR_LIST[0])]  # FIXME
+    # COLOUR_LIST has 4 colors. so num_goals <= 4
+    x = random.randint(0, 1)
+    goal_lst = []
+    num_lst = [0, 1, 2, 3]
+
+    for i in range(4):
+        index = random.choice(num_lst)
+
+        if x == 0:  # Perimeter Goal
+            goal_lst.append(PerimeterGoal(COLOUR_LIST[index]))
+        else:
+            goal_lst.append(BlobGoal(COLOUR_LIST[index]))
+
+        num_lst.remove(index)
+
+    return goal_lst
 
 
 def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
@@ -98,13 +113,14 @@ class PerimeterGoal(Goal):
 
     def description(self) -> str:
         # TODO: Implement me
-        return 'DESCRIPTION'  # FIXME
+        return 'Most unit cells of ' + colour_name(self.colour) + \
+               ' on the perimeter'
 
 
 class BlobGoal(Goal):
     def score(self, board: Block) -> int:
         # TODO: Implement me
-        return 148  # FIXME
+        return 166  # FIXME
 
     def _undiscovered_blob_size(self, pos: Tuple[int, int],
                                 board: List[List[Tuple[int, int, int]]],
@@ -131,11 +147,13 @@ class BlobGoal(Goal):
 
     def description(self) -> str:
         # TODO: Implement me
-        return 'DESCRIPTION'  # FIXME
+        return 'Largest group of connected blocks of ' + \
+               colour_name(self.colour)
 
 
 if __name__ == '__main__':
     import python_ta
+
     python_ta.check_all(config={
         'allowed-import-modules': [
             'doctest', 'python_ta', 'random', 'typing', 'block', 'settings',
