@@ -47,8 +47,24 @@ def create_players(num_human: int, num_random: int, smart_players: List[int]) \
     <smart_players> should be applied to each SmartPlayer object, in order.
     """
     # TODO: Implement Me
-    goals = generate_goals(1)  # FIXME
-    return [HumanPlayer(0, goals[0])]  # FIXME
+    lst_players = []
+    for i in range(num_human):
+        goals = generate_goals(1)
+        human = HumanPlayer(i, goals[0])
+        lst_players.append(human)
+
+    for j in range(num_random):
+        goals = generate_goals(1)
+        random_player = RandomPlayer(j + len(lst_players), goals[0])
+        lst_players.append(random_player)
+
+    for k in range(len(smart_players)):
+        goals = generate_goals(1)
+        smart_player = SmartPlayer(k + len(lst_players), goals[0],
+                                   smart_players[k])
+        lst_players.append(smart_player)
+
+    return lst_players
 
 
 def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
@@ -70,7 +86,36 @@ def _get_block(block: Block, location: Tuple[int, int], level: int) -> \
         - 0 <= level <= max_depth
     """
     # TODO: Implement me
-    return None  # FIXME
+    if block.children == [] or level == 0:  # Tree with 1 node
+        if _has_it(block, location):
+            return block
+        return None
+
+    for child in block.children:
+        if _has_it(child, location):
+            if child.level == level:
+                return child
+            else:
+                return _get_block(child, location, level)
+
+    return None
+
+
+# helper function
+def _has_it(block: Block, location: Tuple[int, int]) -> bool:
+    """Return True if <location> is in <block>. Return False otherwise.
+    :param block:
+    :param location:
+    :return:
+    """
+    block_x = block.position[0]
+    block_y = block.position[1]
+    loc_x = location[0]
+    loc_y = location[1]
+    if block_x <= loc_x < block_x + block.size and \
+            block_y <= loc_y < block_y + block.size:
+        return True
+    return False
 
 
 class Player:
@@ -211,7 +256,7 @@ class RandomPlayer(Player):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._proceed = True
 
-    def generate_move(self, board: Block) ->\
+    def generate_move(self, board: Block) -> \
             Optional[Tuple[str, Optional[int], Block]]:
         """Return a valid, randomly generated move.
 
@@ -247,7 +292,7 @@ class SmartPlayer(Player):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._proceed = True
 
-    def generate_move(self, board: Block) ->\
+    def generate_move(self, board: Block) -> \
             Optional[Tuple[str, Optional[int], Block]]:
         """Return a valid move by assessing multiple valid moves and choosing
         the move that results in the highest score for this player's goal (i.e.,
