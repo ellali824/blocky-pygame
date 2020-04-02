@@ -191,6 +191,7 @@ class Block:
         if self.children == []:  # no children
             self.position = position
         else:
+            self.position = position
             lst_positions = self._children_positions()
             i = 0
             for child in self.children:  # each child is a Block
@@ -221,6 +222,8 @@ class Block:
         # __init__(self, position: Tuple[int, int], size: int,
         #                  colour: Optional[Tuple[int, int, int]], level: int,
         #                  max_depth: int) -> None:
+
+        self.colour = None
         lst_positions = self._children_positions()
         child_size = self._child_size()
         child_level = self.level + 1
@@ -229,6 +232,11 @@ class Block:
             b = Block(lst_positions[i], child_size, random.choice(COLOUR_LIST),
                       child_level, child_md)
             self.children.append(b)
+
+        for child in self.children:
+            num = random.random()
+            if num < math.exp(-0.25 * child.level):
+                child.smash()
 
         return True
 
@@ -257,7 +265,7 @@ class Block:
             self.children[1] = two
             self.children[2] = one
 
-        if direction == 0:
+        if direction == 0: # horizontal
             self.children[0] = one
             self.children[1] = zero
             self.children[2] = three
@@ -405,7 +413,6 @@ class Block:
             return block
 
 
-
 if __name__ == '__main__':
     import python_ta
 
@@ -422,10 +429,14 @@ if __name__ == '__main__':
     b1 = Block((0, 0), 750, COLOUR_LIST[0], 0, 1)
     print("=== tiny board ===")
     print(b1)
+    b1.smash()
+    print(b1)
+    b1.swap(1)
+    print(b1)
 
     # Now let's make a random board.
     b2 = generate_board(3, 750)
     print("\n=== random board ===")
-    print(b2)
-    b2.children[0].smash()
-    print(b2)
+    #print(b2)
+    # b2.children[0].smash()
+    # print(b2)

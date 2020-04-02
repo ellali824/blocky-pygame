@@ -136,7 +136,7 @@ def flattened_board_16x16() -> List[List[Tuple[int, int, int]]]:
 
 
 def test_block_to_squares_leaf(child_block) -> None:
-    """Test that a board with only one block can be correctly trasnlated into
+    """Test that a board with only one block can be correctly translated into
     a square that would be rendered onto the screen.
     """
     squares = _block_to_squares(child_block)
@@ -171,6 +171,7 @@ class TestRender:
     NOTE: this requires that your blocky._block_to_squares function is working
     correctly.
     """
+
     def test_render_reference_board(self, renderer, board_16x16) -> None:
         """Render the reference board to a file so that you can view it on your
         computer."""
@@ -200,7 +201,7 @@ class TestRender:
         renderer.save_to_file('reference-rotate-1.png')
 
         # Render what your swap does to the reference board
-        board_16x16.swap(0)
+        board_16x16.children[0].rotate(1)
         renderer.clear()
         renderer.draw_board(_block_to_squares(board_16x16))
         renderer.save_to_file('your-rotate-1.png')
@@ -212,6 +213,7 @@ class TestBlock:
     NOTE: this is a small subset of tests - just because you pass them does NOT
     mean you have a fully working implementation of the Block class.
     """
+
     def test_smash_on_child(self, child_block) -> None:
         """Test that a child block cannot be smashed.
         """
@@ -243,6 +245,24 @@ class TestBlock:
                 # There should only be either 0 or 4 children (RI)
                 assert False
 
+    # written by me
+    def test_update_children_position(self, board_16x16) -> None:
+        """Test that a block's children's positions are correctly updated.
+        """
+        block = board_16x16
+        block._update_children_positions((1, 1))
+        s = block._child_size()
+        level_1_pos_updated = [(1 + s, 1), (1, 1), (1, 1 + s), (1 + s, 1 + s)]
+
+        assert block._children_positions() == level_1_pos_updated
+
+        s2 = block.children[0]._child_size()
+        x = 1 + s
+        y = 1
+        level_2_pos_updated = [(x + s2, y), (x, y), (x, y + s2),
+                               (x + s2, y + s2)]
+        assert block.children[0]._children_positions() == level_2_pos_updated
+
     def test_swap0(self, board_16x16, board_16x16_swap0) -> None:
         """Test that the reference board can be correctly swapped along the
         horizontal plane.
@@ -265,6 +285,7 @@ class TestPlayer:
      NOTE: this is a small subset of tests - just because you pass them does NOT
      mean you have a fully working implementation.
     """
+
     def test_get_block_top_left(self, board_16x16) -> None:
         """Test that the correct block is retrieved from the reference board
         when requesting the top-left corner of the board.
@@ -281,7 +302,7 @@ class TestPlayer:
         assert _get_block(board_16x16, top_right, 0) == board_16x16
         assert _get_block(board_16x16, top_right, 1) == board_16x16.children[0]
         assert _get_block(board_16x16, top_right, 2) == \
-            board_16x16.children[0].children[0]
+               board_16x16.children[0].children[0]
 
 
 class TestGoal:
@@ -290,6 +311,7 @@ class TestGoal:
      NOTE: this is a small subset of tests - just because you pass them does NOT
      mean you have a fully working implementation of the Goal sub-classes.
     """
+
     def test_block_flatten(self, board_16x16, flattened_board_16x16) -> None:
         """Test that flattening the reference board results in the expected list
         of colours.
