@@ -45,7 +45,7 @@ def generate_goals(num_goals: int) -> List[Goal]:
     goal_lst = []
     num_lst = [0, 1, 2, 3]
 
-    for i in range(4):
+    for i in range(num_goals):
         index = random.choice(num_lst)
 
         if x == 0:  # Perimeter Goal
@@ -73,7 +73,80 @@ def _flatten(block: Block) -> List[List[Tuple[int, int, int]]]:
     L[0][0] represents the unit cell in the upper left corner of the Block.
     """
     # TODO: Implement me
-    return []  # FIXME
+    lst_blocks = _create_list_blocks(block)
+    big_lst = []
+    x = 0
+    for i in range(pow(2, block.max_depth - block.level)):
+        small_lst = []
+        y = 0
+
+        _fill_inner_lst(block, lst_blocks, small_lst, x, y)
+
+        big_lst.append(small_lst)
+
+        x += block.size / pow(2, block.max_depth - block.level)
+
+    tuple_lst = []
+    for i in range(len(big_lst)):
+        col_lst = []
+
+        for j in range(len(big_lst[i])):
+            col_lst.append(big_lst[i][j].colour)
+
+        tuple_lst.append(col_lst)
+
+    return tuple_lst
+
+
+# helper functions
+def _fill_inner_lst(block: Block, lst_blocks: List[Block],
+                    small_lst: List[Block], x: int, y: int) -> None:
+    """Add the appropriate blocks from <lst_blocks> to <small_lst>.
+
+    :param block:
+    :param lst_blocks:
+    :param small_lst:
+    :return:
+    """
+    while len(small_lst) < pow(2, block.max_depth - block.level):
+        for b in lst_blocks:
+            if _location_in_block(b, (x, y)):
+                small_lst.append(b)
+                break
+
+        y += block.size / pow(2, block.max_depth - block.level)
+
+
+def _create_list_blocks(block: Block) -> List[Block]:
+    """Return a list of all the Blocks that need to be drawn in order to create
+    <block>. (all the leaves of the tree)
+    :param block:
+    :return:
+    """
+    if block.children == []:
+        return [block]
+    else:
+        lst = []
+        for child in block.children:
+            lst.extend(_create_list_blocks(child))
+
+        return lst
+
+
+def _location_in_block(block: Block, location: Tuple[int, int]) -> bool:
+    """Return True if <location> is in <block>. Return False otherwise.
+    :param block:
+    :param location:
+    :return:
+    """
+    block_x = block.position[0]
+    block_y = block.position[1]
+    loc_x = location[0]
+    loc_y = location[1]
+    if block_x <= loc_x < block_x + block.size and \
+            block_y <= loc_y < block_y + block.size:
+        return True
+    return False
 
 
 class Goal:
@@ -107,9 +180,27 @@ class Goal:
 
 
 class PerimeterGoal(Goal):
+
     def score(self, board: Block) -> int:
         # TODO: Implement me
-        return 148  # FIXME
+        lst_lst_tup = _flatten(board)
+        score = 0
+        for i in range(len(lst_lst_tup)):
+            for j in range(len(lst_lst_tup[i])):
+                if lst_lst_tup[i][j] == self.colour:
+                    score += 1
+        # corners
+        max_index = pow(2, board.max_depth) - 1
+        if lst_lst_tup[0][0] == self.colour:
+            score += 1
+        if lst_lst_tup[0][max_index]:
+            score += 1
+        if lst_lst_tup[max_index][0]:
+            score += 1
+        if lst_lst_tup[max_index][max_index]:
+            score += 1
+
+        return score
 
     def description(self) -> str:
         # TODO: Implement me

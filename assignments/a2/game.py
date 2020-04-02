@@ -101,7 +101,7 @@ def create_auto_game() -> Game:
 def create_two_player_game() -> Game:
     """Run a game with two human players.
     """
-    return Game(3, 2, 0, [])
+    return Game(1, 2, 0, [])
 
 
 def create_solitaire_game() -> Game:
