@@ -211,7 +211,7 @@ class PerimeterGoal(Goal):
 class BlobGoal(Goal):
     def score(self, board: Block) -> int:
         # TODO: Implement me
-        brd = flatten(board)
+        brd = _flatten(board)
         v = []
         for i in range(len(brd)):
             lst = []
