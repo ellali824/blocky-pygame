@@ -221,7 +221,8 @@ class BlobGoal(Goal):
         scores = []
         for i in range(len(brd)):
             for j in range(len(brd)):
-                scores.append(self._undiscovered_blob_size((i, j), brd, v))
+                s = self._undiscovered_blob_size((i, j), brd, v)
+                scores.append(s)
         return max(scores)
 
     def _undiscovered_blob_size(self, pos: Tuple[int, int],
@@ -251,7 +252,7 @@ class BlobGoal(Goal):
         if board[i][j] != self.colour:
             visited[i][j] = 0
             return 0
-        if 0 > i >= len(board) or 0 > j >= len(board):
+        if 0 >= i > len(board) or 0 >= j > len(board):
             return 0
         visited[i][j] = 1
         for n in range(4):
