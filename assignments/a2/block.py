@@ -307,9 +307,9 @@ class Block:
         two = self.children[2]
         three = self.children[3]
 
-        self.children[0] = three
+        self.children[0] = one
         self.children[1] = two
-        self.children[2] = one
+        self.children[2] = three
         self.children[3] = zero
 
     # helper

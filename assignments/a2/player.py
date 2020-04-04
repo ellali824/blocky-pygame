@@ -243,10 +243,13 @@ class RandomPlayer(Player):
     # _proceed:
     #   True when the player should make a move, False when the player should
     #   wait.
+    id: int
+    goal: Goal
     _proceed: bool
 
     def __init__(self, player_id: int, goal: Goal) -> None:
         # TODO: Implement Me
+        Player.__init__(self, player_id, goal)
         self._proceed = False
 
     def get_selected_block(self, board: Block) -> Optional[Block]:
@@ -269,7 +272,6 @@ class RandomPlayer(Player):
             return None  # Do not remove
 
         # TODO: Implement Me
-
         self._proceed = False  # Must set to False before returning!
         return None  # FIXME
 

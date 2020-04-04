@@ -112,7 +112,7 @@ def _fill_inner_lst(block: Block, lst_blocks: List[Block],
         for b in lst_blocks:
             if _location_in_block(b, (x, y)):
                 small_lst.append(b)
-                break
+                return None
 
         y += block.size / pow(2, block.max_depth - block.level)
 
@@ -211,7 +211,18 @@ class PerimeterGoal(Goal):
 class BlobGoal(Goal):
     def score(self, board: Block) -> int:
         # TODO: Implement me
-        return 166  # FIXME
+        brd = flatten(board)
+        v = []
+        for i in range(len(brd)):
+            lst = []
+            for j in range(len(brd)):
+                lst.append(-1)
+            v.append(lst)
+        scores = []
+        for i in range(len(brd)):
+            for j in range(len(brd)):
+                scores.append(self._undiscovered_blob_size((i, j), brd, v))
+        return max(scores)
 
     def _undiscovered_blob_size(self, pos: Tuple[int, int],
                                 board: List[List[Tuple[int, int, int]]],
@@ -234,7 +245,25 @@ class BlobGoal(Goal):
         either 0 or 1.
         """
         # TODO: Implement me
-        pass  # FIXME
+        sc = 1
+        i = pos[0]
+        j = pos[1]
+        if board[i][j] != self.colour:
+            visited[i][j] = 0
+            return 0
+        if 0 > i >= len(board) or 0 > j >= len(board):
+            return 0
+        visited[i][j] = 1
+        for n in range(4):
+            if n == 0 and i + 1 < len(board) and visited[i + 1][j] == -1:
+                sc += self._undiscovered_blob_size((i + 1, j), board, visited)
+            if n == 1 and i + 1 < len(board) and visited[i][j + 1] == -1:
+                sc += self._undiscovered_blob_size((i, j + 1), board, visited)
+            if n == 2 and i - 1 >= 0 and visited[i - 1][j] == -1:
+                sc += self._undiscovered_blob_size((i - 1, j), board, visited)
+            if n == 3 and j - 1 >= 0 and visited[i][j - 1] == -1:
+                sc += self._undiscovered_blob_size((i, j - 1), board, visited)
+        return sc
 
     def description(self) -> str:
         # TODO: Implement me
